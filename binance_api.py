@@ -1,5 +1,6 @@
 from datetime import datetime
 import credentails
+import json
 from binance.client import Client
 from binance.enums import *
 from binance.websockets import BinanceSocketManager
@@ -30,6 +31,7 @@ class BinanceAPI:
         self.__trade_history = list()
         self.__dump_trend_counter = 0
         self.__transactions = list()
+        self.__log_file_handler = None
         try:
             self.__client.ping()
         except Exception as e:
@@ -40,10 +42,14 @@ class BinanceAPI:
             print(self.__client.get_asset_balance(asset='BTC'))
             print(self.__client.get_asset_balance(asset='USDT'))
 
-    def start_session(self, trade_pair):
+    def start_session(self, trade_pair: str):
         self.__trade_pair = trade_pair
+        filename: str = trade_pair + "-" + datetime.now().strftime("%m-%d-%Y %H-%M-%S") + ".txt"
+        self.__log_file_handler = open("./logs/"+filename, "a")
+
         if not config.MODE_WATCH_ONLY:
-            self.execute_market_buy(100)
+            self.__execute_market_buy(100)
+
         self.__stream_trades()
 
     def __stream_trades(self):
@@ -99,6 +105,8 @@ class BinanceAPI:
                 self.__process(event)
                 log_price_stream(event, self.__entry_price)
                 self.__trade_history.append(event)
+                self.__log_file_handler.write(json.dumps(event))
+                self.__log_file_handler.write("\n")
             else:
                 pass
 
@@ -109,7 +117,7 @@ class BinanceAPI:
             if ip.lower() == 'y':
                 self.__execute_market_sell(quantity=float(self.__remaining_quantity))
             self.__show_summary()
-            dump_trade_stream_logs(self.__trade_history)
+            self.__log_file_handler.close()
             self.__bm.stop_socket(self.__connection_key)
 
     def __process(self, event):
@@ -138,6 +146,7 @@ class BinanceAPI:
                 print("> Stopping Trade Stream")
                 self.__show_summary()
                 self.__bm.stop_socket(self.__connection_key)
+                self.__log_file_handler.close()
                 return
 
         elif self.__dump_trend_counter == config.SHORT_DUMP_TREND_THRESHOLD:

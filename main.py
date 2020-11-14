@@ -3,8 +3,9 @@ from binance_api import BinanceAPI
 if __name__ == '__main__':
     binance = None
     try:
-        pair = 'BTCUSDT'
+        #pair = 'BTCUSDT'
         binance = BinanceAPI()
+        pair = input("Enter Trade Pair: ")
 
         binance.start_session(pair)
     except (KeyboardInterrupt, SystemExit):
