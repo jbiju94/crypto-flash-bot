@@ -1,10 +1,16 @@
 from binance_api import BinanceAPI
 
 if __name__ == '__main__':
-    pair = 'BTCUSDT'
-    binance = BinanceAPI()
+    binance = None
+    try:
+        pair = 'BTCUSDT'
+        binance = BinanceAPI()
 
-    binance.start_session(pair)
+        binance.start_session(pair)
+    except (KeyboardInterrupt, SystemExit):
+        if binance is not None:
+            binance.dump_position()
+
 
 #import cProfile
 #cProfile.run('foo()')

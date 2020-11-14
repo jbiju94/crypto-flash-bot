@@ -25,3 +25,9 @@ def log_price_stream(event, entry_price: float):
     else:
         pass
 
+
+def dump_trade_stream_logs(stream):
+    filename = datetime.now() + ".txt"
+    stream_log = open(filename, "w")
+    stream_log.writelines(stream)
+    file1.close()

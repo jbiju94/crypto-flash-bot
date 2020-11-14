@@ -5,7 +5,7 @@ from binance.enums import *
 from binance.websockets import BinanceSocketManager
 
 import config
-from utility import log_price_stream
+from utility import log_price_stream, dump_trade_stream_logs
 
 
 class BinanceAPI:
@@ -42,7 +42,8 @@ class BinanceAPI:
 
     def start_session(self, trade_pair):
         self.__trade_pair = trade_pair
-        # self.execute_market_buy(100)
+        if not config.MODE_WATCH_ONLY:
+            self.execute_market_buy(100)
         self.__stream_trades()
 
     def __stream_trades(self):
@@ -86,28 +87,29 @@ class BinanceAPI:
         # total_trade_fees = (BinanceAPI.TRADE_FEES_PERCENTAGE / 100) * total_price
 
     def __handle_event(self, event):
-        try:
-            if event['e'] == 'error':
-                self.__execute_market_sell(quantity=float(self.__remaining_quantity))
-                self.__show_summary()
-                self.__bm.stop_socket(self.__connection_key)
+        if event['e'] == 'error':
+            self.__execute_market_sell(quantity=float(self.__remaining_quantity))
+            self.__show_summary()
+            self.__bm.stop_socket(self.__connection_key)
 
+        else:
+            if self.__last_trade_price is None:
+                self.__last_trade_price = float(event['p'])
+            elif self.__last_trade_price != float(event['p']):
+                self.__process(event)
+                log_price_stream(event, self.__entry_price)
+                self.__trade_history.append(event)
             else:
-                if self.__last_trade_price is None:
-                    self.__last_trade_price = float(event['p'])
-                elif self.__last_trade_price != float(event['p']):
-                    self.__process(event)
-                    log_price_stream(event, self.__entry_price)
-                    self.__trade_history.append(event)
-                else:
-                    pass
+                pass
 
-        except (KeyboardInterrupt, SystemExit):
-            print("** Exit Signal **")
+    def dump_position(self):
+        print("** Bot Exit Signal **")
+        if not config.MODE_WATCH_ONLY:
             ip = input("Exiting Position..")
             if ip.lower() == 'y':
                 self.__execute_market_sell(quantity=float(self.__remaining_quantity))
             self.__show_summary()
+            dump_trade_stream_logs(self.__trade_history)
             self.__bm.stop_socket(self.__connection_key)
 
     def __process(self, event):
@@ -117,30 +119,32 @@ class BinanceAPI:
             # Scenario: Price Decreasing
             self.__dump_trend_counter = self.__dump_trend_counter + 1
             print("Last Price: {} < Current Price: {} | Increasing DUMP IND to {}".format(self.__last_trade_price,
-                                                                                     current_price,
-                                                                                     self.__dump_trend_counter))
+                                                                                          current_price,
+                                                                                          self.__dump_trend_counter))
         else:
             # Scenario: Price Increasing
             self.__dump_trend_counter = self.__dump_trend_counter - 1
             print("Last Price: {} > Current Price: {} | Decreasing DUMP IND to {}".format(self.__last_trade_price,
-                                                                                     current_price,
-                                                                                     self.__dump_trend_counter))
+                                                                                          current_price,
+                                                                                          self.__dump_trend_counter))
 
         self.__last_trade_price = current_price
 
         if self.__dump_trend_counter > config.DUMP_TREND_THRESHOLD:
             print("> Dump detected.")
             print("> Exiting Position..")
-            # self.__execute_market_sell(quantity=float(self.__remaining_quantity))
-            print("> Stopping Trade Stream")
-            self.__show_summary()
-            self.__bm.stop_socket(self.__connection_key)
-            return
+            if not config.MODE_WATCH_ONLY:
+                self.__execute_market_sell(quantity=float(self.__remaining_quantity))
+                print("> Stopping Trade Stream")
+                self.__show_summary()
+                self.__bm.stop_socket(self.__connection_key)
+                return
 
         elif self.__dump_trend_counter == config.SHORT_DUMP_TREND_THRESHOLD:
             print("> Down trend detected.")
             print("> Selling 50%..")
-            # self.__execute_market_sell(quantity=float(self.__remaining_quantity * 0.50))
+            if not config.MODE_WATCH_ONLY:
+                self.__execute_market_sell(quantity=float(self.__remaining_quantity * 0.50))
 
         else:
             return
