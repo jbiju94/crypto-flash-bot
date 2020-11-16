@@ -3,6 +3,7 @@
 # Log Configurations
 LOG_PRICE_STREAM = True
 LOG_PRICE_CHANGE = False
+LOG_TRADE_HISTORY = False
 
 MODE_WATCH_ONLY = True
 

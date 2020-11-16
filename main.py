@@ -5,6 +5,7 @@ if __name__ == '__main__':
     try:
         #pair = 'BTCUSDT'
         binance = BinanceAPI()
+        print("\n=============================================\n")
         pair = input("Enter Trade Pair: ")
 
         binance.start_session(pair)

@@ -1,12 +1,13 @@
-from datetime import datetime
-import credentails
 import json
+from datetime import datetime
+
 from binance.client import Client
 from binance.enums import *
 from binance.websockets import BinanceSocketManager
 
 import config
-from utility import log_price_stream, dump_trade_stream_logs
+import credentails
+from utility import log_price_stream
 
 
 class BinanceAPI:
@@ -21,7 +22,7 @@ class BinanceAPI:
 
         # Position Related
         self.__entry_timestamp = None
-        self.__entry_price = 1000000
+        self.__entry_price = None
         self.__entry_quantity = None
         self.__exit_prices = list()
         self.__remaining_quantity = None
@@ -44,19 +45,18 @@ class BinanceAPI:
 
     def start_session(self, trade_pair: str):
         self.__trade_pair = trade_pair
-        filename: str = trade_pair + "-" + datetime.now().strftime("%m-%d-%Y %H-%M-%S") + ".txt"
-        self.__log_file_handler = open("./logs/"+filename, "a")
-
         if not config.MODE_WATCH_ONLY:
             self.__execute_market_buy(100)
 
+        filename: str = trade_pair + "-" + datetime.now().strftime("%m-%d-%Y %H-%M-%S") + ".txt"
+        self.__log_file_handler = open("./logs/" + filename, "a")
         self.__stream_trades()
 
     def __stream_trades(self):
         print("> Listening to trades of '{}'.".format(self.__trade_pair))
         print("================================================")
         self.__bm = BinanceSocketManager(self.__client)
-        self.__connection_key = self.__bm.start_trade_socket(self.__trade_pair, self.__handle_event)
+        self.__connection_key = self.__bm.start_trade_socket(self.__trade_pair, self.handle_event)
         self.__bm.start()
 
     def __execute_market_buy(self, quantity: float):
@@ -87,16 +87,9 @@ class BinanceAPI:
         self.__transactions.append(order)
         print("> Sell @ {} (MarketPrice) Executed for '{}'.".format(order['price'], self.__trade_pair))
 
-    # TODO: V2 - Considering Trade price
-    def __calculate_trade_fees(self):
-        total_price = self.__entry_price * self.__entry_quantity
-        # total_trade_fees = (BinanceAPI.TRADE_FEES_PERCENTAGE / 100) * total_price
-
-    def __handle_event(self, event):
+    def handle_event(self, event):
         if event['e'] == 'error':
-            self.__execute_market_sell(quantity=float(self.__remaining_quantity))
-            self.__show_summary()
-            self.__bm.stop_socket(self.__connection_key)
+            self.dump_position()
 
         else:
             if self.__last_trade_price is None:
@@ -105,8 +98,9 @@ class BinanceAPI:
                 self.__process(event)
                 log_price_stream(event, self.__entry_price)
                 self.__trade_history.append(event)
-                self.__log_file_handler.write(json.dumps(event))
-                self.__log_file_handler.write("\n")
+                if config.LOG_TRADE_HISTORY:
+                    self.__log_file_handler.write(json.dumps(event))
+                    self.__log_file_handler.write("\n")
             else:
                 pass
 
@@ -126,15 +120,13 @@ class BinanceAPI:
         if self.__last_trade_price > current_price:
             # Scenario: Price Decreasing
             self.__dump_trend_counter = self.__dump_trend_counter + 1
-            print("Last Price: {} < Current Price: {} | Increasing DUMP IND to {}".format(self.__last_trade_price,
-                                                                                          current_price,
-                                                                                          self.__dump_trend_counter))
+            print("Last Price: %.8f < Current Price: %.8f | Increasing DUMP_IND to % .2d" % (
+            self.__last_trade_price, current_price, self.__dump_trend_counter))
         else:
             # Scenario: Price Increasing
             self.__dump_trend_counter = self.__dump_trend_counter - 1
-            print("Last Price: {} > Current Price: {} | Decreasing DUMP IND to {}".format(self.__last_trade_price,
-                                                                                          current_price,
-                                                                                          self.__dump_trend_counter))
+            print("Last Price: %.8f > Current Price: %.8f | Decreasing DUMP_IND to % .2d" % (
+            self.__last_trade_price, current_price, self.__dump_trend_counter))
 
         self.__last_trade_price = current_price
 
@@ -164,7 +156,7 @@ class BinanceAPI:
         print("|> Entry Price: {}".format(self.__entry_price))
         print("|> Entry Qty: {}".format(self.__entry_quantity))
         print("|> Exit Prices: {}".format(self.__exit_prices))
-        #print("|> Average Exit Price: {}".format(avg_exit_price))
+        # print("|> Average Exit Price: {}".format(avg_exit_price))
         print("|> Remaining Qty: {}".format(self.__remaining_quantity))
         print("|> Exit Timestamp: {}".format(datetime.now()))
         print("===========================================================")
@@ -175,3 +167,6 @@ class BinanceAPI:
             print("|>>> {}".format(transaction))
         print("===========================================================")
         print(self.__client.get_trade_fee(symbol=self.__trade_pair))
+
+    def get_all_transactions(self) -> list:
+        return self.__transactions

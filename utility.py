@@ -24,10 +24,3 @@ def log_price_stream(event, entry_price: float):
             print("[{}] {} | Price: {}".format(date_time, event['e'], current_price))
     else:
         pass
-
-
-def dump_trade_stream_logs(stream):
-    filename = datetime.now() + ".txt"
-    stream_log = open(filename, "w")
-    stream_log.writelines(stream)
-    file1.close()
