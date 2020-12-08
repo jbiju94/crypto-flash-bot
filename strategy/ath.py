@@ -32,7 +32,7 @@ class ATH:
                 print("> Price = ATH: {:.8f} | Reset Indicator ! : {} "
                       .format(current_price, self.__dump_trend_counter))
 
-            elif current_price == self.ath - 1:
+            elif self.ath - current_price == 0.00000001:
                 self.__dump_trend_counter = self.__dump_trend_counter - 2
                 print("> Price near ATH: {:.8f} |  Indicator --2 : {} "
                       .format(current_price, self.__dump_trend_counter))

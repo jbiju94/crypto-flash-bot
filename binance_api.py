@@ -4,7 +4,7 @@ from logger import Logger
 from account import Account
 from connection import ConnectionManager
 from trade import TradeSession
-from strategy.ath import ATH
+from strategy.pcent import PCent
 
 
 class BinanceAPI:
@@ -15,17 +15,17 @@ class BinanceAPI:
         self.__quote_currency = None
         self.__asset = None
         self.__logger = None
-        self.__strategy = ATH()
+        self.__strategy = PCent()
         client = ConnectionManager.get_client()
         Account.get_balance(client, "BTC")
-        Account.get_balance(client, "USDT")
+        #Account.get_balance(client, "USDT")
         Account.print_balances()
 
     def set_logger(self, trade_pair: str):
         self.__logger = Logger(trade_pair)
 
     def set_strategy(self):
-        self.__strategy = ATH()
+        self.__strategy = PCent()
 
     def start_session(self, asset: str, quote: str):
         self.__asset: str = asset
@@ -38,6 +38,8 @@ class BinanceAPI:
             balance = float(Account.get_balance(ConnectionManager.get_client(), self.__quote_currency)['free'])
             Account.load_trade_pair_info(ConnectionManager.get_client(), self.__trade_pair)
             self.__trade_session = TradeSession(self.__asset,  self.__quote_currency, initial_buy=balance)
+            self.__strategy.on_start(client=ConnectionManager.get_client(),
+                                     trade=self.__trade_session)
 
         ConnectionManager.subscribe_to_stream(self.__trade_pair, on_event_fn=self.handle_event)
 

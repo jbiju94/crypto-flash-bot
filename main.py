@@ -5,7 +5,7 @@ if __name__ == '__main__':
     try:
 
         binance = BinanceAPI()
-        pair = 'ETH_BTC'
+        pair = 'MBL_BTC'
         # pair = input("Enter Trade Pair: ")
         print("\n=============================================\n")
 

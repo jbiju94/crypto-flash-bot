@@ -35,7 +35,7 @@ class Account:
 
     @staticmethod
     def print_balances():
-        print("\n================== BALANCE ==================\n")
+        print("============================ BALANCE =============================")
         for balance in Account.__balances:
             print(balance)
-        print("\n=============================================\n")
+        print("===================================================================")
