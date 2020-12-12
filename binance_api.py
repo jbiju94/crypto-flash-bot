@@ -16,9 +16,11 @@ class BinanceAPI:
         self.__asset = None
         self.__logger = None
         self.__strategy = PCent()
+
         client = ConnectionManager.get_client()
         Account.get_balance(client, "BTC")
-        #Account.get_balance(client, "USDT")
+        # Account.get_balance(client, "USDT")
+        Account.load_trade_pair_info(client)
         Account.print_balances()
 
     def set_logger(self, trade_pair: str):
@@ -36,7 +38,6 @@ class BinanceAPI:
             self.__trade_session = None
         else:
             balance = float(Account.get_balance(ConnectionManager.get_client(), self.__quote_currency)['free'])
-            Account.load_trade_pair_info(ConnectionManager.get_client(), self.__trade_pair)
             self.__trade_session = TradeSession(self.__asset,  self.__quote_currency, initial_buy=balance)
             self.__strategy.on_start(client=ConnectionManager.get_client(),
                                      trade=self.__trade_session)

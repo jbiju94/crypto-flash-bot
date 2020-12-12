@@ -4,6 +4,7 @@ import json
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# in progress
 #close = numpy.random.random(100)
 #print(close)
 #ma = talib.SMA(close)

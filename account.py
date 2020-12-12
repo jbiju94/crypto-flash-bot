@@ -16,9 +16,9 @@ class Account:
                     Account.__load_balance(client, asset))
 
     @staticmethod
-    def load_trade_pair_info(client, pair=None):
-        if pair is not None:
-            Account.__asset_info.append(client.get_symbol_info(pair))
+    def load_trade_pair_info(client):
+        info = client.get_exchange_info()
+        Account.__asset_info.append(info['symbols'])
 
     @staticmethod
     def get_trade_pair_info(pair):

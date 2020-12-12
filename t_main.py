@@ -1,10 +1,12 @@
+from os import environ
+
 from telethon import TelegramClient, events
 from credentails import telegram_api_hash, telegram_api_id
 from binance_api import BinanceAPI
 import re
 
 client = TelegramClient('anon', telegram_api_id, telegram_api_hash)
-user_input_channel = "https://t.me/TodayWePush"
+user_input_channel = environ.get('telegram_channel')
 binance = BinanceAPI()
 print("> Waiting for Trigger...")
 
